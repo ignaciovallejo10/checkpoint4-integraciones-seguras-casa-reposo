@@ -1,0 +1,529 @@
+{
+  "name": "Checkpoint 4 | Integraciones Seguras Casa Reposo",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        16
+      ],
+      "id": "c459db1d-d469-4ab5-b901-ca912ba18dae",
+      "name": "Gmail Trigger | Correo entrante de soporte",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Y9qnKhwdNa3Uz8mo",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "146e4cef-bc97-42e2-84c6-cee71e75b7c8",
+              "leftValue": "={{\n  /auto[- ]?reply|automatic reply|respuesta automática|out of office|fuera de la oficina|undeliverable|delivery status notification|mail delivery subsystem|no[-_]?reply|do[-_]?not[-_]?reply|auto-generated|auto-replied/i.test(\n    [\n      $json.Subject || '',\n      $json.From || '',\n      $json.snippet || '',\n      $json['Auto-Submitted'] || '',\n      $json.headers?.['auto-submitted'] || ''\n    ].join(' ')\n  )\n}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        16
+      ],
+      "id": "58dc21d0-0836-4d26-8e0c-f8bdc9963b38",
+      "name": "IF | Bloquear respuestas automáticas"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f2e729b7-8534-4645-bbe4-5b8ffa376a18",
+              "name": "sender_email",
+              "value": "={{ ($json.From || '').match(/<([^>]+)>/)?.[1] || ($json.From || '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "f67020a8-76b5-4c38-9bfd-280573575962",
+              "name": "threadId",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "3f0d3290-7f79-42b3-bff0-3fda8190e9f7",
+              "name": "subject",
+              "value": "={{ $json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "69f6e590-bd95-49e0-9eaf-43ec75063f23",
+              "name": "snippet",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "5de9f400-ab11-44a5-beb3-847da55c7744",
+              "name": "messageId",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "ec3d9fca-e914-482b-8b08-3aa0cbfc8bf0",
+              "name": "body",
+              "value": "={{ $json.textPlain || $json.textHtml || $json.snippet }}",
+              "type": "string"
+            },
+            {
+              "id": "b63513ab-42df-4fef-a9a4-3a3a3573173c",
+              "name": "receivedAt",
+              "value": "={{ $now }}",
+              "type": "string"
+            },
+            {
+              "id": "6fdb6512-9b5e-4fcf-886e-620591c6b5cd",
+              "name": "sender_name",
+              "value": "={{ ($json.From || '').replace(/\\s*<[^>]+>\\s*/, '').trim() || 'Cliente' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        112
+      ],
+      "id": "0c3f6104-2ec9-4386-b973-4ca79d066c14",
+      "name": "Set | Limpiar payload Gmail"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "operation": "search",
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "email|string",
+                    "value": "={{ $('Set | Limpiar payload Gmail').item.json.sender_email }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        112
+      ],
+      "id": "97b0f3af-b7eb-47c7-87bf-b2e36ee509b2",
+      "name": "HubSpot | Buscar contacto por email",
+      "alwaysOutputData": true,
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "Fn8HQiCPx080U9QB",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3464c30c-20d1-457e-8be2-cb3185272d31",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        112
+      ],
+      "id": "206e37a5-632f-4fef-b34a-ba2f588fbf1d",
+      "name": "IF | ¿Existe el contacto?"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body }}",
+        "options": {
+          "systemMessage": "Eres el asistente de soporte de Casa Reposo, una marca premium especializada en descanso.\n\nRecibirás el contenido de un correo enviado por un cliente.\n\nTu trabajo es:\n\n1. Analizar el motivo del correo.\n2. Detectar la intención del cliente.\n3. Redactar un borrador de respuesta profesional, amable y cercano.\n4. Nunca inventes información.\n5. Si el cliente pregunta precios o disponibilidad y esa información no está presente, indica que el equipo responderá con esos datos.\n6. Responde siempre en español.\n7. Mantén un tono cálido, elegante y profesional.\n\nDevuelve únicamente el texto del borrador del correo."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        672,
+        112
+      ],
+      "id": "57f66ecb-80e1-4cb7-a3f6-5649bfb48b43",
+      "name": "AI Agent | Analizar correo y generar borrador"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $('Set | Limpiar payload Gmail').item.json.sender_email }}",
+        "additionalFields": {
+          "firstName": "={{ $('Set | Limpiar payload Gmail').item.json.sender_name }}",
+          "leadStatus": "OPEN",
+          "lifeCycleStage": "lead"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1456,
+        16
+      ],
+      "id": "da5506e1-de91-4c24-81e9-29fc3b99513d",
+      "name": "HubSpot | Upsert contacto (existente)",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "Fn8HQiCPx080U9QB",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $('Set | Limpiar payload Gmail').item.json.sender_email }}",
+        "additionalFields": {
+          "firstName": "={{ $('Set | Limpiar payload Gmail').item.json.sender_name }}",
+          "leadStatus": "NEW",
+          "lifeCycleStage": "lead"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.2,
+      "position": [
+        1456,
+        208
+      ],
+      "id": "7584c239-e0a9-46b8-88f9-c8e3846822bd",
+      "name": "HubSpot | Upsert nuevo contacto",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "Fn8HQiCPx080U9QB",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        320
+      ],
+      "id": "72d78f84-46bf-47a6-82ec-d03b2d5221cd",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "vP7sRD0O9ZODpq5r",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ \"RE: \" + $('Set | Limpiar payload Gmail').item.json.subject }}",
+        "message": "={{ $('AI Agent | Analizar correo y generar borrador').item.json.output }}",
+        "options": {
+          "threadId": "={{ $('Set | Limpiar payload Gmail').item.json.threadId }}",
+          "sendTo": "={{ $('Set | Limpiar payload Gmail').item.json.sender_email }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1680,
+        80
+      ],
+      "id": "72f9e354-bf46-4b7a-aab8-f55c060910dc",
+      "name": "Gmail | Crear borrador HITL",
+      "webhookId": "b3f21755-e1ab-4a9f-b535-adad778acab1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Y9qnKhwdNa3Uz8mo",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a00b7a86-d4a4-43e9-9bac-0bd425ac98d8",
+              "name": "sender_email",
+              "value": "={{ $('Set | Limpiar payload Gmail').item.json.sender_email }}",
+              "type": "string"
+            },
+            {
+              "id": "88a1078a-8976-4032-b8b8-343d7e45deca",
+              "name": "subject",
+              "value": "={{ $('Set | Limpiar payload Gmail').item.json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "4c8fc565-9b3f-48fb-b466-6a1098325d88",
+              "name": "draftId",
+              "value": "={{ $('Gmail | Crear borrador HITL').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "edd1ad88-2365-4ae9-a246-c011fc0b9840",
+              "name": "sender_name",
+              "value": "={{ $('Set | Limpiar payload Gmail').item.json.sender_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1888,
+        80
+      ],
+      "id": "b7c1db46-814f-4820-8d9a-a04e0ff5e012",
+      "name": "Set | Preparar notificación Slack"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "nuevo-canal",
+          "mode": "name"
+        },
+        "text": "=🚨 *Nueva consulta recibida*\n\n👤 Cliente: {{ $json.sender_name }}\n📧 Email: {{ $json.sender_email }}\n📝 Asunto: {{ $json.subject }}\n\n✅ Se creó un borrador HITL en Gmail para revisión.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        2128,
+        112
+      ],
+      "id": "f665ffe9-c7bb-4570-b602-91f17b1c4546",
+      "name": "Slack - notificar al equipo",
+      "webhookId": "b2cf0af8-3d4c-4bbf-bed6-59a4efe0d6b2",
+      "credentials": {
+        "slackApi": {
+          "id": "yf70vrEuk4zkvgsW",
+          "name": "Slack account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger | Correo entrante de soporte": {
+      "main": [
+        [
+          {
+            "node": "IF | Bloquear respuestas automáticas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF | Bloquear respuestas automáticas": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Set | Limpiar payload Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set | Limpiar payload Gmail": {
+      "main": [
+        [
+          {
+            "node": "AI Agent | Analizar correo y generar borrador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot | Buscar contacto por email": {
+      "main": [
+        [
+          {
+            "node": "IF | ¿Existe el contacto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF | ¿Existe el contacto?": {
+      "main": [
+        [
+          {
+            "node": "HubSpot | Upsert contacto (existente)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot | Upsert nuevo contacto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent | Analizar correo y generar borrador": {
+      "main": [
+        [
+          {
+            "node": "HubSpot | Buscar contacto por email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot | Upsert nuevo contacto": {
+      "main": [
+        [
+          {
+            "node": "Gmail | Crear borrador HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot | Upsert contacto (existente)": {
+      "main": [
+        [
+          {
+            "node": "Gmail | Crear borrador HITL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent | Analizar correo y generar borrador",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail | Crear borrador HITL": {
+      "main": [
+        [
+          {
+            "node": "Set | Preparar notificación Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set | Preparar notificación Slack": {
+      "main": [
+        [
+          {
+            "node": "Slack - notificar al equipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6d2b4968-d737-4948-aa73-ff3a16406a5b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fa7f37844231a6c9b69f64146524744d2ade2969a1e4ff599b326f8cdb9394a8"
+  },
+  "nodeGroups": [],
+  "id": "uR7Y63NO6B6zZ4qW",
+  "tags": []
+}
